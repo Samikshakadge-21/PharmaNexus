@@ -6,6 +6,9 @@ const cors = require('cors');
 const authRoutes = require('./routes/authRoutes');
 const supabase = require('./config/supabase');
 
+const dashboardRoutes = require('./routes/dashboardRoutes');
+const inventoryRoutes = require('./routes/inventoryRoutes');
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -30,6 +33,9 @@ app.use(
 // ======================================================
 
 app.use('/api/auth', authRoutes);
+
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/inventory', inventoryRoutes);
 
 
 // ======================================================
