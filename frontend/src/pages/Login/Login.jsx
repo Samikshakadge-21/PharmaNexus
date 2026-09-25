@@ -94,18 +94,7 @@ function Login({ onLogin, onRegister }) {
     }
   }
 
-  // Handle temporary development login
-  const handleSkipLogin = () => {
-    if (!role) {
-      setErrors({
-        role: "Please select your account type.",
-      })
-      return
-    }
 
-    // Temporary development shortcut.
-    onLogin(role)
-  }
 
   // Handle role selection
   const handleRoleChange = (selectedRole) => {
@@ -375,20 +364,7 @@ function Login({ onLogin, onRegister }) {
             </button>
           </form>
 
-          {/* Temporary Development Login */}
-          <div className="mt-4">
-            <button
-              type="button"
-              onClick={handleSkipLogin}
-              className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] theme-text-secondary text-sm font-medium hover:border-[var(--primary)] hover:theme-primary transition"
-            >
-              Skip Login
-            </button>
-
-            <p className="text-[11px] text-center theme-text-secondary mt-2">
-              Temporary development option
-            </p>
-          </div>
+          
 
           {/* Registration */}
           {role !== "admin" && (

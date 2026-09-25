@@ -19,14 +19,17 @@ import {
 
 import { registerUser } from "../../services/api"
 
-function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
-
+function Register({
+  onRegister,
+  onLogin,
+  onSwitchToLogin,
+  onRegisterSuccess,
+}) {
   const [role, setRole] = useState("pharmacy")
 
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
-  const [licenseFile, setLicenseFile] = useState(null)
 
   const [formData, setFormData] = useState({
     businessName: "",
@@ -36,23 +39,23 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
     address: "",
     gstin: "",
     licenseNumber: "",
+    licenseFile: null,
     password: "",
     confirmPassword: "",
   })
 
   const [errors, setErrors] = useState({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // --------------------------------------------------
   // Handle normal field changes
   // --------------------------------------------------
   const handleChange = (field, value) => {
-
     setFormData((current) => ({
       ...current,
       [field]: value,
     }))
 
-    // Remove error once user starts correcting the field
     if (errors[field]) {
       setErrors((current) => ({
         ...current,
@@ -65,12 +68,14 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
   // Change account role
   // --------------------------------------------------
   const handleRoleChange = (newRole) => {
-
     setRole(newRole)
 
     // Licence belongs to the selected account type.
     // Clear it if the user changes role.
-    setLicenseFile(null)
+    setFormData((current) => ({
+      ...current,
+      licenseFile: null,
+    }))
 
     setErrors((current) => ({
       ...current,
@@ -82,7 +87,6 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
   // Licence file upload validation
   // --------------------------------------------------
   const handleLicenseUpload = (e) => {
-
     const file = e.target.files?.[0]
 
     if (!file) {
@@ -98,8 +102,10 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
     const maxSize = 5 * 1024 * 1024 // 5 MB
 
     if (!allowedTypes.includes(file.type)) {
-
-      setLicenseFile(null)
+      setFormData((current) => ({
+        ...current,
+        licenseFile: null,
+      }))
 
       setErrors((current) => ({
         ...current,
@@ -112,8 +118,10 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
     }
 
     if (file.size > maxSize) {
-
-      setLicenseFile(null)
+      setFormData((current) => ({
+        ...current,
+        licenseFile: null,
+      }))
 
       setErrors((current) => ({
         ...current,
@@ -125,7 +133,10 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
       return
     }
 
-    setLicenseFile(file)
+    setFormData((current) => ({
+      ...current,
+      licenseFile: file,
+    }))
 
     setErrors((current) => ({
       ...current,
@@ -137,8 +148,10 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
   // Remove selected licence
   // --------------------------------------------------
   const removeLicenseFile = () => {
-
-    setLicenseFile(null)
+    setFormData((current) => ({
+      ...current,
+      licenseFile: null,
+    }))
 
     setErrors((current) => ({
       ...current,
@@ -150,7 +163,6 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
   // Complete form validation
   // --------------------------------------------------
   const validateForm = () => {
-
     const newErrors = {}
 
     const businessName = formData.businessName.trim()
@@ -160,6 +172,7 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
     const address = formData.address.trim()
     const gstin = formData.gstin.trim().toUpperCase()
     const licenseNumber = formData.licenseNumber.trim()
+    const licenseFile = formData.licenseFile
     const password = formData.password
     const confirmPassword = formData.confirmPassword
 
@@ -167,24 +180,17 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
     // Business / Pharmacy Name
     // -----------------------------------------------
     if (!businessName) {
-
       newErrors.businessName =
         role === "pharmacy"
           ? "Pharmacy name is required."
           : "Business / Distributor name is required."
-
     } else if (businessName.length < 2) {
-
       newErrors.businessName =
         "Name must contain at least 2 characters."
-
     } else if (businessName.length > 100) {
-
       newErrors.businessName =
         "Name cannot exceed 100 characters."
-
     } else if (!/^[A-Za-z0-9&.,'()\- ]+$/.test(businessName)) {
-
       newErrors.businessName =
         "Name contains invalid characters."
     }
@@ -193,24 +199,17 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
     // Owner / Contact Person
     // -----------------------------------------------
     if (!ownerName) {
-
       newErrors.ownerName =
         role === "pharmacy"
           ? "Owner name is required."
           : "Contact person name is required."
-
     } else if (ownerName.length < 2) {
-
       newErrors.ownerName =
         "Name must contain at least 2 characters."
-
     } else if (ownerName.length > 80) {
-
       newErrors.ownerName =
         "Name cannot exceed 80 characters."
-
     } else if (!/^[A-Za-z.'\- ]+$/.test(ownerName)) {
-
       newErrors.ownerName =
         "Please enter a valid name."
     }
@@ -219,18 +218,13 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
     // Email
     // -----------------------------------------------
     if (!email) {
-
       newErrors.email = "Email address is required."
-
     } else if (
       !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)
     ) {
-
       newErrors.email =
         "Please enter a valid email address."
-
     } else if (email.length > 150) {
-
       newErrors.email =
         "Email address is too long."
     }
@@ -241,12 +235,9 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
     const cleanPhone = phone.replace(/\s|-/g, "")
 
     if (!phone) {
-
       newErrors.phone =
         "Mobile number is required."
-
     } else if (!/^(?:\+91|91)?[6-9]\d{9}$/.test(cleanPhone)) {
-
       newErrors.phone =
         "Please enter a valid Indian mobile number."
     }
@@ -255,17 +246,12 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
     // Address
     // -----------------------------------------------
     if (!address) {
-
       newErrors.address =
         "Business address is required."
-
     } else if (address.length < 10) {
-
       newErrors.address =
         "Please enter a complete business address."
-
     } else if (address.length > 300) {
-
       newErrors.address =
         "Address cannot exceed 300 characters."
     }
@@ -274,16 +260,13 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
     // GSTIN
     // -----------------------------------------------
     if (!gstin) {
-
       newErrors.gstin =
         "GSTIN is required."
-
     } else if (
       !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(
         gstin
       )
     ) {
-
       newErrors.gstin =
         "Please enter a valid GSTIN."
     }
@@ -292,22 +275,15 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
     // Drug Licence Number
     // -----------------------------------------------
     if (!licenseNumber) {
-
       newErrors.licenseNumber =
         "Drug licence number is required."
-
     } else if (licenseNumber.length < 5) {
-
       newErrors.licenseNumber =
         "Please enter a valid drug licence number."
-
     } else if (licenseNumber.length > 50) {
-
       newErrors.licenseNumber =
         "Licence number cannot exceed 50 characters."
-
     } else if (!/^[A-Za-z0-9\/\-. ]+$/.test(licenseNumber)) {
-
       newErrors.licenseNumber =
         "Licence number contains invalid characters."
     }
@@ -315,8 +291,7 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
     // -----------------------------------------------
     // Licence File
     // -----------------------------------------------
-    if (!licenseFile) {
-
+    if (!formData.licenseFile) {
       newErrors.licenseFile =
         "Please upload your drug licence."
     }
@@ -325,37 +300,24 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
     // Password
     // -----------------------------------------------
     if (!password) {
-
       newErrors.password =
         "Password is required."
-
     } else if (password.length < 8) {
-
       newErrors.password =
         "Password must contain at least 8 characters."
-
     } else if (password.length > 64) {
-
       newErrors.password =
         "Password cannot exceed 64 characters."
-
     } else if (!/[A-Z]/.test(password)) {
-
       newErrors.password =
         "Password must contain at least one uppercase letter."
-
     } else if (!/[a-z]/.test(password)) {
-
       newErrors.password =
         "Password must contain at least one lowercase letter."
-
     } else if (!/[0-9]/.test(password)) {
-
       newErrors.password =
         "Password must contain at least one number."
-
     } else if (!/[^A-Za-z0-9]/.test(password)) {
-
       newErrors.password =
         "Password must contain at least one special character."
     }
@@ -364,12 +326,9 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
     // Confirm Password
     // -----------------------------------------------
     if (!confirmPassword) {
-
       newErrors.confirmPassword =
         "Please confirm your password."
-
     } else if (confirmPassword !== password) {
-
       newErrors.confirmPassword =
         "Passwords do not match."
     }
@@ -378,8 +337,6 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
 
     return Object.keys(newErrors).length === 0
   }
-
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // --------------------------------------------------
   // Submit registration
@@ -392,17 +349,44 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
     }
 
     setIsSubmitting(true)
+
     try {
+      /*
+       * Send all registration information that the backend
+       * currently needs.
+       *
+       * The licence FILE is sent as multipart/form-data
+       * by registerUser() and uploaded by the backend.
+       */
       const payload = {
         email: formData.email.trim(),
+
         password: formData.password,
-        pharmacyName: formData.businessName.trim() || 'My Pharmacy',
-        ownerName: formData.ownerName.trim() || 'Pharmacist',
+
+        pharmacyName:
+          formData.businessName.trim() || "My Pharmacy",
+
+        ownerName:
+          formData.ownerName.trim() || "Pharmacist",
+
         phone: formData.phone.trim(),
-        role: role || 'pharmacist',
+
+        address: formData.address.trim(),
+
+        gstin:
+          formData.gstin.trim().toUpperCase(),
+          
+
+        licenseNumber:
+          formData.licenseNumber.trim(),
+
+        role: role || "pharmacy",
+
+        licenseFile: formData.licenseFile,
       }
 
       const res = await registerUser(payload)
+
       if (res && res.success) {
         if (onRegisterSuccess) {
           onRegisterSuccess(formData.email.trim())
@@ -410,10 +394,20 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
           onRegister()
         }
       } else {
-        setErrors((prev) => ({ ...prev, form: res?.message || 'Registration failed.' }))
+        setErrors((prev) => ({
+          ...prev,
+          form:
+            res?.message ||
+            "Registration failed.",
+        }))
       }
     } catch (err) {
-      setErrors((prev) => ({ ...prev, form: err.message || 'Registration failed.' }))
+      setErrors((prev) => ({
+        ...prev,
+        form:
+          err.message ||
+          "Registration failed.",
+      }))
     } finally {
       setIsSubmitting(false)
     }
@@ -423,7 +417,6 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
   // Format file size
   // --------------------------------------------------
   const formatFileSize = (bytes) => {
-
     if (bytes < 1024) {
       return `${bytes} B`
     }
@@ -437,12 +430,10 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
 
   return (
     <div className="min-h-screen bg-[var(--bg-page)] flex items-center justify-center px-4 py-8">
-
       <div className="w-full max-w-2xl">
 
         {/* Logo */}
         <div className="text-center mb-7">
-
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[var(--primary)] text-white shadow-sm">
             <Pill size={28} />
           </div>
@@ -454,14 +445,12 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
           <p className="text-sm theme-text-secondary mt-1">
             Create your account and get started
           </p>
-
         </div>
 
         {/* Registration Card */}
         <div className="theme-card rounded-2xl p-7 shadow-sm">
 
           <div className="mb-6">
-
             <h2 className="text-xl font-semibold theme-text-primary">
               Create Account
             </h2>
@@ -469,12 +458,9 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
             <p className="text-sm theme-text-secondary mt-1">
               Select your account type to continue
             </p>
-
           </div>
 
-          {/* -----------------------------------------
-              ACCOUNT TYPE
-          ------------------------------------------ */}
+          {/* ACCOUNT TYPE */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-7">
 
             {/* Pharmacy */}
@@ -487,7 +473,6 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
                   : "theme-border hover:bg-[var(--bg-input)]"
               }`}
             >
-
               <div className="flex items-center gap-3">
 
                 <div
@@ -501,7 +486,6 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
                 </div>
 
                 <div>
-
                   <p className="text-sm font-semibold theme-text-primary">
                     Pharmacy
                   </p>
@@ -509,11 +493,9 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
                   <p className="text-xs theme-text-secondary mt-1">
                     Manage your pharmacy
                   </p>
-
                 </div>
 
               </div>
-
             </button>
 
             {/* Distributor */}
@@ -526,7 +508,6 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
                   : "theme-border hover:bg-[var(--bg-input)]"
               }`}
             >
-
               <div className="flex items-center gap-3">
 
                 <div
@@ -540,7 +521,6 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
                 </div>
 
                 <div>
-
                   <p className="text-sm font-semibold theme-text-primary">
                     Distributor
                   </p>
@@ -548,11 +528,9 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
                   <p className="text-xs theme-text-secondary mt-1">
                     Manage your catalog
                   </p>
-
                 </div>
 
               </div>
-
             </button>
 
           </div>
@@ -563,11 +541,8 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
             className="space-y-5"
           >
 
-            {/* -----------------------------------------
-                BUSINESS NAME
-            ------------------------------------------ */}
+            {/* BUSINESS NAME */}
             <div>
-
               <label className="block text-sm font-medium theme-text-primary mb-2">
                 {role === "pharmacy"
                   ? "Pharmacy Name"
@@ -577,7 +552,6 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
               </label>
 
               <div className="relative">
-
                 <Store
                   size={18}
                   className="absolute left-3 top-1/2 -translate-y-1/2 theme-text-secondary"
@@ -604,7 +578,6 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
                       : "focus:ring-[var(--primary)]/30"
                   }`}
                 />
-
               </div>
 
               {errors.businessName && (
@@ -612,14 +585,10 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
                   {errors.businessName}
                 </p>
               )}
-
             </div>
 
-            {/* -----------------------------------------
-                OWNER / CONTACT PERSON
-            ------------------------------------------ */}
+            {/* OWNER / CONTACT PERSON */}
             <div>
-
               <label className="block text-sm font-medium theme-text-primary mb-2">
                 {role === "pharmacy"
                   ? "Owner Name"
@@ -629,7 +598,6 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
               </label>
 
               <div className="relative">
-
                 <User
                   size={18}
                   className="absolute left-3 top-1/2 -translate-y-1/2 theme-text-secondary"
@@ -656,7 +624,6 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
                       : "focus:ring-[var(--primary)]/30"
                   }`}
                 />
-
               </div>
 
               {errors.ownerName && (
@@ -664,24 +631,19 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
                   {errors.ownerName}
                 </p>
               )}
-
             </div>
 
-            {/* -----------------------------------------
-                EMAIL + PHONE
-            ------------------------------------------ */}
+            {/* EMAIL + PHONE */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
 
               {/* Email */}
               <div>
-
                 <label className="block text-sm font-medium theme-text-primary mb-2">
                   Email Address
                   <span className="text-red-500 ml-1">*</span>
                 </label>
 
                 <div className="relative">
-
                   <Mail
                     size={18}
                     className="absolute left-3 top-1/2 -translate-y-1/2 theme-text-secondary"
@@ -704,7 +666,6 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
                         : "focus:ring-[var(--primary)]/30"
                     }`}
                   />
-
                 </div>
 
                 {errors.email && (
@@ -712,19 +673,16 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
                     {errors.email}
                   </p>
                 )}
-
               </div>
 
               {/* Phone */}
               <div>
-
                 <label className="block text-sm font-medium theme-text-primary mb-2">
                   Mobile Number
                   <span className="text-red-500 ml-1">*</span>
                 </label>
 
                 <div className="relative">
-
                   <Phone
                     size={18}
                     className="absolute left-3 top-1/2 -translate-y-1/2 theme-text-secondary"
@@ -747,7 +705,6 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
                         : "focus:ring-[var(--primary)]/30"
                     }`}
                   />
-
                 </div>
 
                 {errors.phone && (
@@ -755,23 +712,18 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
                     {errors.phone}
                   </p>
                 )}
-
               </div>
 
             </div>
 
-            {/* -----------------------------------------
-                BUSINESS ADDRESS
-            ------------------------------------------ */}
+            {/* BUSINESS ADDRESS */}
             <div>
-
               <label className="block text-sm font-medium theme-text-primary mb-2">
                 Business Address
                 <span className="text-red-500 ml-1">*</span>
               </label>
 
               <div className="relative">
-
                 <MapPin
                   size={18}
                   className="absolute left-3 top-3.5 theme-text-secondary"
@@ -794,11 +746,9 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
                       : "focus:ring-[var(--primary)]/30"
                   }`}
                 />
-
               </div>
 
               <div className="flex justify-between mt-1">
-
                 {errors.address ? (
                   <p className="text-xs text-red-500">
                     {errors.address}
@@ -810,16 +760,11 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
                 <span className="text-xs theme-text-secondary">
                   {formData.address.length}/300
                 </span>
-
               </div>
-
             </div>
 
-            {/* -----------------------------------------
-                GSTIN
-            ------------------------------------------ */}
+            {/* GSTIN */}
             <div>
-
               <label className="block text-sm font-medium theme-text-primary mb-2">
                 GSTIN
                 <span className="text-red-500 ml-1">*</span>
@@ -848,14 +793,10 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
                   {errors.gstin}
                 </p>
               )}
-
             </div>
 
-            {/* -----------------------------------------
-                DRUG LICENCE NUMBER
-            ------------------------------------------ */}
+            {/* DRUG LICENCE NUMBER */}
             <div>
-
               <label className="block text-sm font-medium theme-text-primary mb-2">
                 Drug Licence Number
                 <span className="text-red-500 ml-1">*</span>
@@ -884,21 +825,16 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
                   {errors.licenseNumber}
                 </p>
               )}
-
             </div>
 
-            {/* -----------------------------------------
-                DRUG LICENCE UPLOAD
-            ------------------------------------------ */}
+            {/* DRUG LICENCE UPLOAD */}
             <div>
-
               <label className="block text-sm font-medium theme-text-primary mb-2">
                 Upload Drug Licence
                 <span className="text-red-500 ml-1">*</span>
               </label>
 
-              {!licenseFile ? (
-
+              {!formData.licenseFile ? (
                 <label
                   className={`flex flex-col items-center justify-center w-full min-h-32 px-4 py-5 rounded-xl border-2 border-dashed cursor-pointer transition ${
                     errors.licenseFile
@@ -906,7 +842,6 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
                       : "theme-border hover:border-[var(--primary)] hover:bg-[var(--bg-input)]"
                   }`}
                 >
-
                   <Upload
                     size={24}
                     className="theme-text-secondary mb-2"
@@ -926,36 +861,27 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
                     onChange={handleLicenseUpload}
                     className="hidden"
                   />
-
                 </label>
-
               ) : (
-
                 <div className="flex items-center justify-between gap-3 p-4 rounded-xl theme-input">
 
                   <div className="flex items-center gap-3 min-w-0">
-
                     <div className="w-10 h-10 rounded-lg bg-[var(--primary)]/10 flex items-center justify-center shrink-0">
-
                       <FileText
                         size={20}
                         className="theme-primary"
                       />
-
                     </div>
 
                     <div className="min-w-0">
-
                       <p className="text-sm font-medium theme-text-primary truncate">
-                        {licenseFile.name}
+                        {formData.licenseFile.name}
                       </p>
 
                       <p className="text-xs theme-text-secondary mt-1">
-                        {formatFileSize(licenseFile.size)}
+                        {formatFileSize(formData.licenseFile.size)}
                       </p>
-
                     </div>
-
                   </div>
 
                   <button
@@ -968,7 +894,6 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
                   </button>
 
                 </div>
-
               )}
 
               {errors.licenseFile && (
@@ -976,28 +901,27 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
                   {errors.licenseFile}
                 </p>
               )}
-
             </div>
 
-            {/* -----------------------------------------
-                PASSWORD
-            ------------------------------------------ */}
+            {/* PASSWORD */}
             <div>
-
               <label className="block text-sm font-medium theme-text-primary mb-2">
                 Password
                 <span className="text-red-500 ml-1">*</span>
               </label>
 
               <div className="relative">
-
                 <Lock
                   size={18}
                   className="absolute left-3 top-1/2 -translate-y-1/2 theme-text-secondary"
                 />
 
                 <input
-                  type={showPassword ? "text" : "password"}
+                  type={
+                    showPassword
+                      ? "text"
+                      : "password"
+                  }
                   value={formData.password}
                   onChange={(e) =>
                     handleChange(
@@ -1034,7 +958,6 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
                     <Eye size={18} />
                   )}
                 </button>
-
               </div>
 
               {errors.password ? (
@@ -1047,21 +970,16 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
                   number and special character.
                 </p>
               )}
-
             </div>
 
-            {/* -----------------------------------------
-                CONFIRM PASSWORD
-            ------------------------------------------ */}
+            {/* CONFIRM PASSWORD */}
             <div>
-
               <label className="block text-sm font-medium theme-text-primary mb-2">
                 Confirm Password
                 <span className="text-red-500 ml-1">*</span>
               </label>
 
               <div className="relative">
-
                 <Lock
                   size={18}
                   className="absolute left-3 top-1/2 -translate-y-1/2 theme-text-secondary"
@@ -1109,7 +1027,6 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
                     <Eye size={18} />
                   )}
                 </button>
-
               </div>
 
               {errors.confirmPassword && (
@@ -1117,25 +1034,36 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
                   {errors.confirmPassword}
                 </p>
               )}
-
             </div>
 
-            {/* -----------------------------------------
-                SUBMIT
-            ------------------------------------------ */}
+            {/* FORM ERROR */}
+            {errors.form && (
+              <div className="p-3 rounded-lg border border-red-500/30 bg-red-500/5">
+                <p className="text-sm text-red-500">
+                  {errors.form}
+                </p>
+              </div>
+            )}
+
+            {/* SUBMIT */}
             <button
               type="submit"
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-[var(--primary)] text-white font-medium hover:bg-[var(--primary-hover)] transition"
+              disabled={isSubmitting}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-[var(--primary)] text-white font-medium hover:bg-[var(--primary-hover)] transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Create Account
-              <ArrowRight size={18} />
+              {isSubmitting
+                ? "Creating Account..."
+                : "Create Account"}
+
+              {!isSubmitting && (
+                <ArrowRight size={18} />
+              )}
             </button>
 
           </form>
 
           {/* Divider */}
           <div className="flex items-center gap-3 my-6">
-
             <div className="flex-1 h-px bg-[var(--border)]" />
 
             <span className="text-xs theme-text-secondary">
@@ -1143,12 +1071,10 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
             </span>
 
             <div className="flex-1 h-px bg-[var(--border)]" />
-
           </div>
 
           {/* Login */}
           <div className="text-center">
-
             <p className="text-sm theme-text-secondary">
               Already have an account?
             </p>
@@ -1161,7 +1087,6 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
               <ArrowLeft size={15} />
               Back to Sign In
             </button>
-
           </div>
 
         </div>
@@ -1171,7 +1096,6 @@ function Register({ onRegister, onLogin, onSwitchToLogin, onRegisterSuccess }) {
         </p>
 
       </div>
-
     </div>
   )
 }

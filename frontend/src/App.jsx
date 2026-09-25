@@ -16,7 +16,7 @@ function App() {
   const [authMode, setAuthMode] = useState('login')
   const [user, setUser] = useState(null)
   const [token, setToken] = useState(() => localStorage.getItem('pharmanexus_token'))
-  const [isDevMode, setIsDevMode] = useState(true)
+  const [isDevMode, setIsDevMode] = useState(false)
   const [isLoadingAuth, setIsLoadingAuth] = useState(true)
   const [prefilledEmail, setPrefilledEmail] = useState('')
 
@@ -69,10 +69,6 @@ function App() {
     setCurrentPage('dashboard')
   }
 
-  const handleSkipLogin = () => {
-    setIsDevMode(true)
-    setCurrentPage('dashboard')
-  }
 
   const handleLogout = async () => {
     try {
@@ -108,8 +104,7 @@ function App() {
           <Login
             initialEmail={prefilledEmail}
             onLogin={handleLoginSuccess}
-            onSkip={handleSkipLogin}
-            onSwitchToRegister={() => setAuthMode('register')}
+            onRegister={() => setAuthMode('register')}
           />
         ) : (
           <Register
